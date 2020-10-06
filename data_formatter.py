@@ -37,7 +37,7 @@ def read_csv_data(file_name):
 
 
 training_set = [101, 106, 108, 109, 112, 115, 118, 119, 201, 203, 205, 207, 208, 209, 215, 220, 223, 230]
-testing_set = [105, 111, 113, 121, 200, 202, 210, 212, 213, 214, 219, 221, 222, 228, 231,232, 233, 234]
+testing_set = [105, 111, 113, 121, 200, 202, 210, 212, 213, 214, 219, 221, 222, 228, 231, 232, 233, 234]
 
 for PATIENT_NUM in testing_set:
     annot = read_annot("{}/{}annotations.txt".format(DIR_PATH, PATIENT_NUM))

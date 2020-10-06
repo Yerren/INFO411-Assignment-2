@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-df = pd.read_csv("Training/outputFull/106output_full.csv")
+df = pd.read_csv("Training/outputFull/108output_full.csv")
 
 # Drop fist column that gets generated when saving as csv
 df = df.drop(df.columns[0], axis=1)
@@ -10,7 +10,7 @@ df = df.drop(df.columns[0], axis=1)
 data = df.to_numpy()
 
 # Just taking the first 2000 for now
-data = data[:50000]
+data = data[:5000]
 
 y = data[:, -1]
 X = data[:, :-1]
