@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 # OUTPUT_PATH_FULL = "Training/outputFull"
 OUTPUT_PATH_FULL = "Testing/outputFull"
-half_window_size = 90
+half_window_size = 180
 
 
 training_set = [101, 106, 108, 109, 112, 115, 118, 119, 201, 203, 205, 207, 208, 209, 215, 220, 223, 230]
