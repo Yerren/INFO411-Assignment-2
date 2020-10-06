@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# OUTPUT_PATH_FULL = "Training/outputFull"
-OUTPUT_PATH_FULL = "Testing/outputFull"
+OUTPUT_PATH_FULL = "Training/outputFull"
+# OUTPUT_PATH_FULL = "Testing/outputFull"
 
 # df = pd.read_csv("Training/outputFull/101output_full_baselined.csv")
 #
@@ -26,7 +26,7 @@ testing_set = [105, 111, 113, 121, 200, 202, 210, 212, 213, 214, 219, 221, 222, 
 
 differences = np.empty((1, 0))
 
-for PATIENT_NUM in testing_set:
+for PATIENT_NUM in training_set:
     df = pd.read_csv("{}/{}output_full_baselined.csv".format(OUTPUT_PATH_FULL, PATIENT_NUM))
 
     # Drop fist column that gets generated when saving as csv
@@ -52,20 +52,32 @@ for PATIENT_NUM in testing_set:
     #     max_slice_index = np.argmax(data_slice)
     #     adjusted_indexes[r] = max_slice_index + idx - peak_search
 
-    # We do not use the first and last item of the recording, as they might not have a full window size, as well as the baseline adjustment can affect them strangely.
+    # We do not use the first and last item of the recording, as the baseline adjustment can affect them strangely.
     # adjusted_indexes = adjusted_indexes[1: -1]
     label_indexes = label_indexes[1: -1]
     y_only_labels = y_only_labels[1: -1]
 
-    # Create new output array
-    half_window_size = 90  # For a window +/- 90 centred around the peak
-    output = np.empty((label_indexes.shape[0], half_window_size*2 + 2))
-    for pos, adj_idx in enumerate(label_indexes):
-        output[pos, :-1] = data[adj_idx - half_window_size: adj_idx + half_window_size + 1, 1]
-        output[pos, -1] = y_only_labels[pos]
+    # For a window +/- half_window_size centred around the annotation
+    for half_window_size in [90, 180, 360]:
+        # Create new output array
+        output = np.empty((0, half_window_size*2 + 2))
+        for pos, adj_idx in enumerate(label_indexes):
 
-    output_df = pd.DataFrame(output)
-    output_df.to_csv("{}/{}output_full_baselined_split.csv".format(OUTPUT_PATH_FULL, PATIENT_NUM))
+            segment = data[adj_idx - half_window_size: adj_idx + half_window_size + 1, 1]
+
+            if segment.shape[0] >= half_window_size * 2 + 1:
+                # Check to ensure the first and last segments have enough data points
+                seg_with_label = np.empty(half_window_size*2 + 2)
+
+                seg_with_label[:-1] = segment
+                seg_with_label[-1] = y_only_labels[pos]
+
+                output = np.concatenate((output, seg_with_label.reshape(1, -1)))
+
+        print(output.shape)
+
+        output_df = pd.DataFrame(output)
+        output_df.to_csv("{}/{}output_full_baselined_split_{}.csv".format(OUTPUT_PATH_FULL, PATIENT_NUM, half_window_size))
 
     print(PATIENT_NUM)
 
