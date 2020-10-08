@@ -29,14 +29,15 @@ from wandb.keras import WandbCallback
 
 hyperparameter_defaults = dict(
     scale_data = True,
-    window_size = 360,
-    weigh_classes = False
+    window_size = 90,
+    weigh_classes = False,
+    resample_classes = True
 )
 
-wandb.init(project="INFO411-Assignment2", notes="First tests, no balancing", config=hyperparameter_defaults)
+wandb.init(project="INFO411-Assignment2", notes="Test", config=hyperparameter_defaults)
 
 # Initial setup
-MODEL_NAME = "ECG_LSTM_Large_02"
+MODEL_NAME = "ECG_LSTM_Large_03"
 SEQ_SIZE = wandb.config.window_size * 2 + 1
 NUM_CLASSES = 4
 
@@ -76,16 +77,57 @@ if wandb.config.weigh_classes:
 else:
     class_weights_dict = None
 
+# Potentially oversample the minority classes
+if wandb.config.resample_classes:
+    classes = np.unique(y)
+
+    X_0 = X_train[y_train == classes[0]]
+    X_1 = X_train[y_train == classes[1]]
+    X_2 = X_train[y_train == classes[2]]
+    X_3 = X_train[y_train == classes[3]]
+    y_0 = y_train[y_train == classes[0]]
+    y_1 = y_train[y_train == classes[1]]
+    y_2 = y_train[y_train == classes[2]]
+    y_3 = y_train[y_train == classes[3]]
+
+    ids = np.arange(len(X_1))
+    choices = np.random.choice(ids, len(X_0))
+    sampled_X_1 = X_1[choices]
+    sampled_y_1 = y_1[choices]
+
+    ids = np.arange(len(X_2))
+    choices = np.random.choice(ids, len(X_0))
+    sampled_X_2 = X_2[choices]
+    sampled_y_2 = y_2[choices]
+
+    ids = np.arange(len(X_3))
+    choices = np.random.choice(ids, len(X_0))
+    sampled_X_3 = X_3[choices]
+    sampled_y_3 = y_3[choices]
+
+    # Join back together:
+    resampled_X_total = np.concatenate([X_0, sampled_X_1, sampled_X_2, sampled_X_3], axis=0)
+    resampled_y_total = np.concatenate([y_0, sampled_y_1, sampled_y_2, sampled_y_3], axis=0)
+
+    # Shuffle just to be safe:
+    order = np.arange(len(resampled_X_total))
+    np.random.shuffle(order)
+    X_train = resampled_X_total[order]
+    y_train = resampled_y_total[order]
+
 
 def calc_jk(true_arr, pred_arr):
     k_index = cohen_kappa_score(true_arr, pred_arr)
 
     cr = classification_report(true_arr, pred_arr, output_dict=True)
-    s_sensitivity = cr['1']['recall']
-    v_sensitivity = cr['2']['recall']
 
-    s_ppv = cr['1']['precision']
-    v_ppv = cr['2']['precision']
+    print(cr)
+
+    s_sensitivity = cr['1.0']['recall']
+    v_sensitivity = cr['2.0']['recall']
+
+    s_ppv = cr['1.0']['precision']
+    v_ppv = cr['2.0']['precision']
 
     j_index = s_sensitivity + v_sensitivity + s_ppv + v_ppv
 
@@ -119,8 +161,8 @@ model = build_model()
 # model.evaluate(gen)
 # i1 = gen
 #
-save_model = tf.keras.callbacks.ModelCheckpoint("saved/" + MODEL_NAME + ".h5", monitor='val_accuracy', verbose=0,
-                                                save_best_only=True, save_weights_only=False, mode='max', period=1)
+save_model = tf.keras.callbacks.ModelCheckpoint("saved/" + MODEL_NAME + ".h5", monitor='val_loss', verbose=0,
+                                                save_best_only=True, save_weights_only=False, mode='min', period=1)
 
 checkpoint_path = "checkpoints/" + MODEL_NAME + "cp-{epoch:04d}.ckpt"
 cp_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, verbose=1, save_weights_only=True, period=10)
@@ -129,9 +171,11 @@ def log_cm(tag, type, data):
     # print(val_gen.__getitem__(0)[1])
     X_in, y_in = data
 
+    preds = np.argmax(model.predict(X_in), axis=1)
+
     cm = confusion_matrix(
         y_in,
-        np.argmax(model.predict(X_in), axis=1)
+        preds
     )
     fig, ax = plt.subplots()
     ax.matshow(cm)
@@ -141,14 +185,19 @@ def log_cm(tag, type, data):
     wandb.log({type + "CM_" + str(tag): fig})
     plt.savefig("CMs/" + type + "CM_" + str(tag) + ".png")
 
+    k_score, j_score, jk_score = calc_jk(y_in, preds)
+    wandb.log({type + '_k': k_score, 'epcoh': tag})
+    wandb.log({type + '_j': j_score, 'epcoh': tag})
+    wandb.log({type + '_jk': jk_score, 'epcoh': tag})
+
+
 class Give_metrics(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         if epoch % 10 == 0:
             log_cm(epoch, "val", (X_val, y_val))
             log_cm(epoch, "train", (X_train, y_train))
 
-
-if False:
+if True:
     opt = tf.keras.optimizers.Adam()
 
     loss_fn = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
@@ -156,7 +205,7 @@ if False:
     # compile model
     model.compile(loss=loss_fn, optimizer=opt, metrics=['accuracy'])
 
-    model.fit(X_train, y_train, batch_size=32, validation_data=(X_val, y_val), epochs=50, callbacks=[WandbCallback(), save_model, cp_callback, Give_metrics()], shuffle=True, class_weight=class_weights_dict)
+    model.fit(X_train, y_train, batch_size=32, validation_data=(X_val, y_val), epochs=100, callbacks=[WandbCallback(), save_model, cp_callback, Give_metrics()], shuffle=True, class_weight=class_weights_dict)
 
 
 # Evaluate on testing data
@@ -183,6 +232,7 @@ model = keras.models.load_model("saved/" + MODEL_NAME + ".h5")
 # for item, name in zip(scores, model.metrics_names):
 #     print('Test ' + name, item)
 #     wandb.run.summary['Test ' + name] = item
+
 
 k_score, j_score, jk_score = calc_jk(y_test, np.argmax(model.predict(X_test), axis=1))
 
