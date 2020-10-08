@@ -29,9 +29,9 @@ from wandb.keras import WandbCallback
 
 hyperparameter_defaults = dict(
     scale_data = True,
-    window_size = 90,
+    window_size = 180,
     weigh_classes = False,
-    resample_classes = True
+    resample_classes = False
 )
 
 wandb.init(project="INFO411-Assignment2", notes="Test", config=hyperparameter_defaults)
@@ -41,7 +41,7 @@ MODEL_NAME = "ECG_LSTM_Large_03"
 SEQ_SIZE = wandb.config.window_size * 2 + 1
 NUM_CLASSES = 4
 
-df = pd.read_csv("Training/outputFull/combined_output_full_baselined_split_{}.csv".format(wandb.config.window_size))
+df = pd.read_csv("Training_2/outputFull/combined_output_full_baselined_split_{}.csv".format(wandb.config.window_size))
 
 # Drop useless first column, and convert to numpy array
 data = df.drop(df.columns[0], axis=1).to_numpy()
@@ -186,14 +186,14 @@ def log_cm(tag, type, data):
     plt.savefig("CMs/" + type + "CM_" + str(tag) + ".png")
 
     k_score, j_score, jk_score = calc_jk(y_in, preds)
-    wandb.log({type + '_k': k_score, 'epcoh': tag})
-    wandb.log({type + '_j': j_score, 'epcoh': tag})
-    wandb.log({type + '_jk': jk_score, 'epcoh': tag})
+    wandb.log({type + '_k': k_score, 'epoch': tag})
+    wandb.log({type + '_j': j_score, 'epoch': tag})
+    wandb.log({type + '_jk': jk_score, 'epoch': tag})
 
 
 class Give_metrics(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
-        if epoch % 10 == 0:
+        if epoch % 5 == 0:
             log_cm(epoch, "val", (X_val, y_val))
             log_cm(epoch, "train", (X_train, y_train))
 
@@ -209,7 +209,7 @@ if True:
 
 
 # Evaluate on testing data
-df = pd.read_csv("Testing/outputFull/combined_output_full_baselined_split_{}.csv".format(wandb.config.window_size))
+df = pd.read_csv("Testing_2/outputFull/combined_output_full_baselined_split_{}.csv".format(wandb.config.window_size))
 
 # Drop useless first column, and convert to numpy array
 data_test = df.drop(df.columns[0], axis=1).to_numpy()
