@@ -1,0 +1,8 @@
+# INFO411-Assignment-2
+An open-ended group project for INFO411. We focused on determining whether advanced machine learning models would be able to implicilty extract the important features needed for state of the art ECG based irgular heartbeat detection.
+
+## Outline
+Most machine learning work involving electrocardiogram (ECG) data explicitly extracts a range of features from the signal, such as higher order statistics, morphological features (subsampling the signal), RR-intervals (heartbeat intervals), and wavelet transforms. Additionally, they also often use feature selection techniques, for instance random projection and sequential forward floating search. In contrast, in this work we examine whether comparable performance can be achieved without the use of these meticulously designed features. 
+Table 1: Correspondence between MIT-BIH annotations and the AAMI classes we use in this work. Table adapted from (Mondéjar-Guerra et al., 2019).
+
+We work with the MIT-BIH database  here and, after initial preprocessing, we examine the data further. To determine whether there are any easy to extract, useful features present, we perform PCA and t-SNE to extract important components and visualise the data in two dimensions. Next, we employ powerful boosting algorithms AdaBoost, XGBoost, and LightGBM, hoping that they can extract useful features from the data. Finally, we experiment with deep neural networks (DNNs), as they often perform well on raw data (implicitly finding important features). Ultimately, while some of the models we test do offer reasonable performance, they fall far short of state-of-the-art, indicating that the meticulously designed features used by other methods are indeed critical for this task.
