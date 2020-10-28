@@ -1,5 +1,5 @@
 # INFO411-Assignment-2
-An open-ended group project for INFO411. We focused on determining whether advanced machine learning models would be able to implicilty extract the important features needed for state of the art ECG based irgular heartbeat detection.
+An open-ended group project for INFO411. We focused on determining whether advanced machine learning models would be able to implicitly extract the important features needed for state-of-the-art ECG based irregular heartbeat detection.
 
 ## Outline
 Most machine learning work involving electrocardiogram (ECG) data explicitly extracts a range of features from the signal, such as higher order statistics, morphological features (subsampling the signal), RR-intervals (heartbeat intervals), and wavelet transforms. Additionally, they also often use feature selection techniques, for instance random projection and sequential forward floating search. In contrast, in this work we examine whether comparable performance can be achieved without the use of these meticulously designed features. 
